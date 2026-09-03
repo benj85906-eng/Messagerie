@@ -1,0 +1,25 @@
+{
+  "name": "Le Salon",
+  "short_name": "Le Salon",
+  "description": "Messagerie temps reel",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#151A2B",
+  "theme_color": "#151A2B",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/5B6BC0/E8EAF2/png?text=LS",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/512x512/5B6BC0/E8EAF2/png?text=LS",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
