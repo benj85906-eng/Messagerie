@@ -414,6 +414,264 @@ input{ font: inherit; }
    fourni par la console Firebase (étape 5 du guide en haut du fichier).
 ================================================================== */
 const firebaseConfig = {
+  apiKey:            "AIzaSyBY3h-zZzglWn_1Aofvx-sWO0ryvtQYa_g",
+  authDomain:        "messagerie-94e1e.firebaseapp.com",
+  projectId:         "messagerie-94e1e",
+  storageBucket:     "messagerie-94e1e.firebasestorage.app",
+  messagingSenderId: "153085504561",
+  appId:             "1:153085504561:web:11b75ad3781cd1d1b7b910"
+};
+
+/* ==================================================================
+   2. IMPORTS FIREBASE (version modulaire, chargée depuis le CDN Google)
+   On n'importe que les fonctions utilisées : le navigateur ne
+   télécharge donc pas tout le SDK.
+================================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc,
+         query, orderBy, limit, onSnapshot, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ==================================================================
+   3. RACCOURCIS VERS LES ÉLÉMENTS DE LA PAGE
+================================================================== */
+const $ = (id) => document.getElementById(id);
+
+const ecranAccueil  = $("accueil");
+const ecranChat     = $("chat");
+const alerteConfig  = $("alerte-config");
+const champPseudo   = $("champ-pseudo");
+const champSalon    = $("champ-salon");
+const boutonEntrer  = $("bouton-entrer");
+const boutonRetour  = $("bouton-retour");
+const titreSalon    = $("titre-salon");
+const pointEtat     = $("point-etat");
+const texteEtat     = $("texte-etat");
+const listeMessages = $("liste-messages");
+const champMessage  = $("champ-message");
+const boutonEnvoyer = $("bouton-envoyer");
+
+/* ==================================================================
+   4. ÉTAT DE L'APPLICATION
+   Tout est gardé en mémoire dans cet objet : plus simple à suivre
+   que des variables éparpillées.
+================================================================== */
+const etat = {
+  uid: null,          // identifiant Firebase de l'utilisateur (anonyme)
+  pseudo: "",
+  salon: "",
+  arreterEcoute: null // fonction rendue par onSnapshot pour couper l'écoute
+};
+
+/* Petit stockage local tolérant aux erreurs : dans certains contextes
+   (navigation privée stricte, aperçu en bac à sable) localStorage lève
+   une exception. On l'enveloppe pour que l'app continue de marcher. */
+const memoire = {
+  lire(cle){ try { return localStorage.getItem(cle); } catch { return null; } },
+  ecrire(cle, valeur){ try { localStorage.setItem(cle, valeur); } catch {} }
+};
+
+/* ==================================================================
+   5. DÉMARRAGE
+================================================================== */
+let auth, db;
+
+// Si la config n'a pas été remplacée, on prévient clairement au lieu
+// de laisser une erreur silencieuse dans la console.
+if (firebaseConfig.apiKey === "A_REMPLACER") {
+  alerteConfig.hidden = false;
+  alerteConfig.innerHTML =
+    "Configuration Firebase manquante. Ouvre ce fichier dans un éditeur, " +
+    "cherche <code>COLLE TA CONFIG ICI</code> et remplace l'objet " +
+    "<code>firebaseConfig</code> par celui de ta console Firebase. " +
+    "Le guide complet est en commentaire tout en haut du fichier.";
+  boutonEntrer.disabled = true;
+} else {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db   = getFirestore(app);
+
+  // Connexion anonyme : Firebase attribue un uid stable et persistant
+  // à ce navigateur, sans inscription ni mot de passe.
+  signInAnonymously(auth).catch((err) => {
+    alerteConfig.hidden = false;
+    alerteConfig.textContent =
+      "Connexion refusée par Firebase (" + err.code + "). " +
+      "Vérifie que la méthode « Anonyme » est bien activée dans " +
+      "Authentication → Sign-in method.";
+    boutonEntrer.disabled = true;
+  });
+
+  onAuthStateChanged(auth, (utilisateur) => {
+    if (utilisateur) etat.uid = utilisateur.uid;
+  });
+}
+
+// On repropose le dernier pseudo et le dernier salon utilisés.
+champPseudo.value = memoire.lire("pseudo") || "";
+champSalon.value  = memoire.lire("salon")  || "general";
+
+/* ==================================================================
+   6. ENTRER DANS UN SALON
+================================================================== */
+boutonEntrer.addEventListener("click", entrer);
+champPseudo.addEventListener("keydown", (e) => { if (e.key === "Enter") champSalon.focus(); });
+champSalon .addEventListener("keydown", (e) => { if (e.key === "Enter") entrer(); });
+
+function entrer(){
+  const pseudo = champPseudo.value.trim();
+  // Nom de salon normalisé : minuscules, sans accents ni espaces,
+  // pour que « Général » et « general » mènent au même endroit.
+  const salon = champSalon.value.trim().toLowerCase()
+                  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-") || "general";
+
+  if (!pseudo) { champPseudo.focus(); return; }
+
+  etat.pseudo = pseudo;
+  etat.salon  = salon;
+  memoire.ecrire("pseudo", pseudo);
+  memoire.ecrire("salon", salon);
+
+  titreSalon.textContent = "#" + salon;
+  ecranAccueil.hidden = true;
+  ecranChat.hidden = false;
+  champMessage.focus();
+
+  ecouterMessages();
+}
+
+// Retour à l'accueil : on coupe l'écoute pour ne pas consommer
+// de lectures Firestore inutiles en arrière-plan.
+boutonRetour.addEventListener("click", () => {
+  if (etat.arreterEcoute) etat.arreterEcoute();
+  etat.arreterEcoute = null;
+  listeMessages.innerHTML = "";
+  ecranChat.hidden = true;
+  ecranAccueil.hidden = false;
+});
+
+/* ==================================================================
+   7. ÉCOUTE TEMPS RÉEL
+   onSnapshot rappelle la fonction à chaque changement dans la
+   collection : c'est ce qui rend l'app instantanée, sans WebSocket
+   ni rafraîchissement manuel.
+================================================================== */
+function ecouterMessages(){
+  const requete = query(
+    collection(db, "salons", etat.salon, "messages"),
+    orderBy("createdAt", "asc"),
+    limit(200)                      // on ne charge que les 200 derniers
+  );
+
+  etat.arreterEcoute = onSnapshot(requete,
+    (instantane) => {
+      majEtat(true);
+      // On vérifie si l'utilisateur était déjà en bas de la liste :
+      // si oui on suit les nouveaux messages, sinon on le laisse lire.
+      const enBas = listeMessages.scrollHeight - listeMessages.scrollTop
+                    - listeMessages.clientHeight < 120;
+
+      afficherMessages(instantane.docs);
+
+      if (enBas) listeMessages.scrollTop = listeMessages.scrollHeight;
+    },
+    (err) => {
+      majEtat(false);
+      listeMessages.innerHTML =
+        '<p class="vide">Lecture refusée par Firestore (' + err.code + ').<br>' +
+        'Vérifie les règles de sécurité dans la console.</p>';
+    }
+  );
+}
+
+function majEtat(connecte){
+  pointEtat.classList.toggle("connecte", connecte);
+  texteEtat.textContent = connecte ? "En direct" : "Hors ligne";
+}
+
+/* ==================================================================
+   8. AFFICHAGE DES MESSAGES
+================================================================== */
+function afficherMessages(documents){
+  listeMessages.innerHTML = "";
+
+  if (documents.length === 0){
+    listeMessages.innerHTML =
+      '<p class="vide">Personne n\'a encore parlé ici.<br>' +
+      'Envoie le premier madding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--bord);
+}
+.composer .champ{ margin: 0; border-radius: 22px; }
+
+.envoyer{
+  background: var(--accent);
+  color: #241703;
+  border-radius: 50%;
+  width: 46px; height: 46px;
+  flex-shrink: 0;
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+}
+.envoyer:disabled{ opacity: .4; cursor: not-allowed; }
+
+/* Focus visible au clavier, sur tous les éléments interactifs */
+:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+
+<body>
+
+<!-- ================= ÉCRAN 1 : ACCUEIL ================= -->
+<section id="accueil">
+  <div class="carte-accueil">
+    <div id="alerte-config" class="alerte" hidden></div>
+
+    <h1 class="marque">Le Salon</h1>
+    <p class="sous-titre">Choisis un pseudo, entre le nom d'un salon,
+       et parle avec tous ceux qui utilisent le même nom.</p>
+
+    <input id="champ-pseudo" class="champ" placeholder="Ton pseudo" maxlength="20" autocomplete="off">
+    <input id="champ-salon"  class="champ" placeholder="Nom du salon (ex. general)" maxlength="30" autocomplete="off">
+    <button id="bouton-entrer" class="bouton-principal">Entrer dans le salon</button>
+
+    <p class="note">Les messages sont publics pour tous ceux qui connaissent
+       le nom du salon. Évite les informations sensibles.</p>
+  </div>
+</section>
+
+<!-- ================= ÉCRAN 2 : CHAT ================= -->
+<section id="chat" hidden>
+  <header class="entete">
+    <button id="bouton-retour" class="bouton-retour" aria-label="Changer de salon">←</button>
+    <div>
+      <div class="titre-salon" id="titre-salon"></div>
+      <div class="etat"><span class="point" id="point-etat"></span><span id="texte-etat">Connexion…</span></div>
+    </div>
+  </header>
+
+  <div class="messages" id="liste-messages"></div>
+
+  <div class="composer">
+    <input id="champ-message" class="champ" placeholder="Écris un message" maxlength="500" autocomplete="off">
+    <button id="bouton-envoyer" class="envoyer" aria-label="Envoyer">↑</button>
+  </div>
+</section>
+
+
+<script type="module">
+/* ==================================================================
+   1. CONFIGURATION FIREBASE
+   ------------------------------------------------------------------
+   COLLE TA CONFIG ICI : remplace tout l'objet ci-dessous par celui
+   fourni par la console Firebase (étape 5 du guide en haut du fichier).
+================================================================== */
+const firebaseConfig = {
   apiKey:            "A_REMPLACER",
   authDomain:        "A_REMPLACER.firebaseapp.com",
   projectId:         "A_REMPLACER",
