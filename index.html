@@ -42,6 +42,8 @@ input{font:inherit}
 .pastille{width:30px;height:30px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;color:#131728;margin-bottom:2px}
 .pastille.creux{visibility:hidden}
 .bulle{background:var(--surface2);border-radius:16px 16px 16px 5px;padding:9px 13px;line-height:1.45;font-size:15px;word-break:break-word}
+.bulle img{display:block;max-width:200px;width:100%;border-radius:10px;margin-top:2px}
+.joindre{background:var(--surface2);color:var(--doux);border-radius:50%;width:46px;height:46px;flex-shrink:0;font-size:20px;display:grid;place-items:center}
 .moi .bulle{background:var(--moi);border-radius:16px 16px 5px 16px}
 .auteur{display:block;font-size:12.5px;font-weight:600;margin-bottom:3px}
 .heure{font-size:11px;color:var(--doux);align-self:flex-end;margin-bottom:4px;flex-shrink:0}
@@ -76,6 +78,8 @@ input{font:inherit}
   </header>
   <div class="messages" id="liste"></div>
   <div class="composer">
+    <button id="joindre" class="joindre" aria-label="Envoyer une photo">+</button>
+    <input id="fichier" type="file" accept="image/*" hidden>
     <input id="msg" class="champ" placeholder="Écris un message" maxlength="500" autocomplete="off">
     <button id="envoyer" class="envoyer" aria-label="Envoyer">↑</button>
   </div>
@@ -200,8 +204,17 @@ function afficher(docs){
       a.style.color = couleur(m.pseudo || "");
       bulle.appendChild(a);
     }
-    // textContent et jamais innerHTML : le texte reçu ne peut pas injecter de HTML.
-    bulle.appendChild(document.createTextNode(m.texte || ""));
+    if(m.image){
+      // L'image est stockee dans le message lui-meme, en data-URL.
+      const img = document.createElement("img");
+      img.src = m.image;
+      img.alt = "Photo envoyee par " + (m.pseudo || "");
+      img.loading = "lazy";
+      bulle.appendChild(img);
+    } else {
+      // textContent et jamais innerHTML : le texte recu ne peut pas injecter de HTML.
+      bulle.appendChild(document.createTextNode(m.texte || ""));
+    }
 
     const h = document.createElement("span");
     h.className = "heure";
@@ -233,6 +246,51 @@ function couleur(p){
 function heure(t){
   if(!t || !t.toDate) return "…";
   return t.toDate().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+}
+
+// --- Photos ---
+// Le bouton + ouvre le selecteur de fichiers du telephone.
+$("joindre").addEventListener("click", () => $("fichier").click());
+$("fichier").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  e.target.value = "";            // permet de renvoyer deux fois la meme photo
+  if(!f || !etat.uid) return;
+  try{
+    const data = await reduire(f);
+    await addDoc(collection(db,"salons",etat.salon,"messages"), {
+      image: data,
+      pseudo: etat.pseudo,
+      uid: etat.uid,
+      createdAt: serverTimestamp()
+    });
+  }catch(err){
+    alert("Photo non envoyee (" + (err.code || err.message) + ").");
+  }
+});
+
+// Une photo brute fait plusieurs Mo : on la redimensionne et on la
+// recompresse dans le navigateur pour tomber sous les 100 Ko environ.
+// Sans ca, Firestore refuserait le message (limite de 1 Mo par document).
+function reduire(fichier){
+  return new Promise((ok, ko) => {
+    const lecteur = new FileReader();
+    lecteur.onerror = () => ko(new Error("lecture impossible"));
+    lecteur.onload = () => {
+      const img = new Image();
+      img.onerror = () => ko(new Error("image illisible"));
+      img.onload = () => {
+        const max = 800;
+        const ratio = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * ratio);
+        c.height = Math.round(img.height * ratio);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        ok(c.toDataURL("image/jpeg", 0.55));
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  });
 }
 
 $("envoyer").addEventListener("click", envoyer);
