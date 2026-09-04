@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Le Salon</title>
-<!-- Le manifest transforme la page en app installable : plein ecran, sans barre Chrome -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#151A2B">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -16,18 +15,32 @@ body{height:100dvh;overflow:hidden}
 button{font:inherit;cursor:pointer;border:none}
 input{font:inherit}
 [hidden]{display:none!important}
-/* --- Accueil --- */
+.champ{display:block;width:100%;background:var(--surface);border:1px solid var(--bord);border-radius:14px;color:var(--texte);padding:14px 16px;margin-bottom:12px;outline:none}
+.champ:focus{border-color:var(--moi)}
+.champ:disabled{opacity:.6}
+.principal{width:100%;background:var(--accent);color:#241703;font-weight:600;border-radius:14px;padding:15px;margin-top:6px}
+.principal:disabled{opacity:.5}
+.alerte{background:rgba(224,107,107,.12);border:1px solid rgba(224,107,107,.4);color:#FFC9C9;border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.55;text-align:left;margin-bottom:22px}
+/* --- 1. Pseudo --- */
 #accueil{height:100%;display:grid;place-items:center;padding:24px}
 .carte{width:100%;max-width:380px;text-align:center}
 .marque{font-family:Fraunces,Georgia,serif;font-size:clamp(44px,13vw,64px);line-height:1;text-shadow:0 0 42px rgba(91,107,192,.55)}
 .sous{color:var(--doux);font-size:15px;margin:14px 0 34px;line-height:1.5}
-.champ{display:block;width:100%;background:var(--surface);border:1px solid var(--bord);border-radius:14px;color:var(--texte);padding:14px 16px;margin-bottom:12px;outline:none}
-.champ:focus{border-color:var(--moi)}
-.principal{width:100%;background:var(--accent);color:#241703;font-weight:600;border-radius:14px;padding:15px;margin-top:6px}
-.principal:disabled{opacity:.5}
 .note{color:var(--doux);font-size:13px;margin-top:18px;line-height:1.5}
-.alerte{background:rgba(224,107,107,.12);border:1px solid rgba(224,107,107,.4);color:#FFC9C9;border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.55;text-align:left;margin-bottom:22px}
-/* --- Chat --- */
+/* --- 2. Liste des salons --- */
+#liste-salons{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+.barre{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;background:var(--surface);border-bottom:1px solid var(--bord)}
+.barre h2{font-family:Fraunces,Georgia,serif;font-size:24px}
+.moi-pseudo{font-size:13px;color:var(--doux)}
+.salons{overflow-y:auto;padding:8px 0}
+.salon{display:flex;align-items:center;gap:14px;width:100%;background:none;color:var(--texte);text-align:left;padding:14px 16px;border-bottom:1px solid var(--bord)}
+.salon:active{background:var(--surface)}
+.rond{width:44px;height:44px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;font-weight:600;color:#131728}
+.salon-nom{font-size:16px;font-weight:500}
+.salon-info{font-size:12.5px;color:var(--doux);margin-top:2px}
+.pied{padding:14px 16px;background:var(--surface);border-top:1px solid var(--bord)}
+.pied .principal{margin:0}
+/* --- 3. Chat --- */
 #chat{height:100%;display:grid;grid-template-rows:auto 1fr auto}
 .entete{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--bord)}
 .retour{background:var(--surface2);color:var(--doux);border-radius:10px;padding:8px 11px;line-height:1}
@@ -43,34 +56,50 @@ input{font:inherit}
 .pastille.creux{visibility:hidden}
 .bulle{background:var(--surface2);border-radius:16px 16px 16px 5px;padding:9px 13px;line-height:1.45;font-size:15px;word-break:break-word}
 .bulle img{display:block;max-width:200px;width:100%;border-radius:10px;margin-top:2px}
-.joindre{background:var(--surface2);color:var(--doux);border-radius:50%;width:46px;height:46px;flex-shrink:0;font-size:20px;display:grid;place-items:center}
 .moi .bulle{background:var(--moi);border-radius:16px 16px 5px 16px}
 .auteur{display:block;font-size:12.5px;font-weight:600;margin-bottom:3px}
 .heure{font-size:11px;color:var(--doux);align-self:flex-end;margin-bottom:4px;flex-shrink:0}
 .suppr{background:none;color:rgba(255,255,255,.55);font-size:15px;padding:0 4px;align-self:center}
 .composer{display:flex;gap:10px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--bord)}
 .composer .champ{margin:0;border-radius:22px}
+.joindre{background:var(--surface2);color:var(--doux);border-radius:50%;width:46px;height:46px;flex-shrink:0;font-size:20px;display:grid;place-items:center}
 .envoyer{background:var(--accent);color:#241703;border-radius:50%;width:46px;height:46px;flex-shrink:0;font-size:18px;display:grid;place-items:center}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
 
+<!-- 1. Choix du pseudo, une seule fois -->
 <section id="accueil">
   <div class="carte">
     <div id="alerte" class="alerte" hidden></div>
     <h1 class="marque">Le Salon</h1>
-    <p class="sous">Choisis un pseudo, entre le nom d'un salon, et parle avec tous ceux qui utilisent le même nom.</p>
+    <p class="sous">Choisis ton pseudo. Il sera definitif, alors reflechis bien.</p>
     <input id="pseudo" class="champ" placeholder="Ton pseudo" maxlength="20" autocomplete="off">
-    <input id="salon" class="champ" placeholder="Nom du salon" maxlength="30" autocomplete="off">
-    <button id="entrer" class="principal">Entrer dans le salon</button>
-    <p class="note">Les messages sont publics pour tous ceux qui connaissent le nom du salon.</p>
+    <button id="valider" class="principal">C'est parti</button>
+    <p class="note">Une fois valide, le pseudo ne peut plus etre modifie.</p>
   </div>
 </section>
 
+<!-- 2. Liste de tous les salons existants -->
+<section id="liste-salons" hidden>
+  <header class="barre">
+    <div>
+      <h2>Salons</h2>
+      <div class="moi-pseudo" id="moi-pseudo"></div>
+    </div>
+    <button id="cloche" class="retour" aria-label="Activer les notifications">🔔</button>
+  </header>
+  <div class="salons" id="salons"></div>
+  <div class="pied">
+    <button id="nouveau" class="principal">+ Nouveau salon</button>
+  </div>
+</section>
+
+<!-- 3. Conversation -->
 <section id="chat" hidden>
   <header class="entete">
-    <button id="retour" class="retour" aria-label="Changer de salon">←</button>
+    <button id="retour" class="retour" aria-label="Retour aux salons">←</button>
     <div>
       <div class="titre" id="titre"></div>
       <div class="etat"><span class="point" id="pt"></span><span id="txt">Connexion…</span></div>
@@ -86,8 +115,10 @@ input{font:inherit}
 </section>
 
 <script type="module">
-// Config Firebase du projet messagerie-94e1e (publique par conception :
-// ce sont les règles Firestore qui protègent les données, pas cette clé).
+// Mot de passe pour creer un salon. Attention : il est lisible dans le code
+// source par n'importe qui. C'est un verrou de confort, pas une securite.
+const MDP_ADMIN = "6366";
+
 const config = {
   apiKey: "AIzaSyBY3h-zZzglWn_1Aofvx-sWO0ryvtQYa_g",
   authDomain: "messagerie-94e1e.firebaseapp.com",
@@ -97,15 +128,13 @@ const config = {
   appId: "1:153085504561:web:11b75ad3781cd1d1b7b910"
 };
 
-// On n'importe que les fonctions utilisées, depuis le CDN de Google.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, setDoc, deleteDoc, doc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (id) => document.getElementById(id);
-const etat = { uid:null, pseudo:"", salon:"", stop:null };
+const etat = { uid:null, pseudo:"", salon:"", stop:null, stopSalons:null, premier:true };
 
-// localStorage peut lever une exception en navigation privée stricte.
 const mem = {
   lire(c){ try{ return localStorage.getItem(c); }catch{ return null; } },
   ecrire(c,v){ try{ localStorage.setItem(c,v); }catch{} }
@@ -115,59 +144,157 @@ const app = initializeApp(config);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Connexion anonyme : un uid unique par navigateur, sans mot de passe.
 signInAnonymously(auth).catch((e) => {
   $("alerte").hidden = false;
-  $("alerte").textContent = "Connexion refusée par Firebase (" + e.code + "). Vérifie que la méthode « Anonyme » est activée dans Authentication.";
-  $("entrer").disabled = true;
+  $("alerte").textContent = "Connexion refusee par Firebase (" + e.code + ").";
+  $("valider").disabled = true;
 });
 onAuthStateChanged(auth, (u) => { if(u) etat.uid = u.uid; });
 
-$("pseudo").value = mem.lire("pseudo") || "";
-$("salon").value = mem.lire("salon") || "general";
+// --- 1. PSEUDO ---
+// Une fois enregistre, on saute directement a la liste des salons.
+const dejaVu = mem.lire("pseudo");
+if(dejaVu){
+  etat.pseudo = dejaVu;
+  montrerSalons();
+}
 
-$("entrer").addEventListener("click", entrer);
-$("salon").addEventListener("keydown", (e) => { if(e.key === "Enter") entrer(); });
+$("valider").addEventListener("click", validerPseudo);
+$("pseudo").addEventListener("keydown", (e) => { if(e.key === "Enter") validerPseudo(); });
 
-function entrer(){
+function validerPseudo(){
   const p = $("pseudo").value.trim();
   if(!p){ $("pseudo").focus(); return; }
-  // Nom normalisé : « Général » et « general » mènent au même salon.
-  const s = $("salon").value.trim().toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-") || "general";
+  etat.pseudo = p;
+  mem.ecrire("pseudo", p);   // definitif : plus aucun ecran ne le remodifie
+  montrerSalons();
+}
 
-  etat.pseudo = p; etat.salon = s;
-  mem.ecrire("pseudo", p); mem.ecrire("salon", s);
-  $("titre").textContent = "#" + s;
+// --- 2. LISTE DES SALONS ---
+function montrerSalons(){
   $("accueil").hidden = true;
+  $("chat").hidden = true;
+  $("liste-salons").hidden = false;
+  $("moi-pseudo").textContent = "Connecte en tant que " + etat.pseudo;
+  if(etat.stop){ etat.stop(); etat.stop = null; }
+  if(!etat.stopSalons) ecouterSalons();
+}
+
+// Chaque salon est un document dans la collection "salons" : c'est ce qui
+// permet de tous les lister, meme ceux ou on n'a jamais parle.
+function ecouterSalons(){
+  const req = query(collection(db,"salons"), orderBy("nom","asc"), limit(100));
+  etat.stopSalons = onSnapshot(req, (snap) => {
+    const boite = $("salons");
+    boite.innerHTML = "";
+    if(snap.empty){
+      boite.innerHTML = '<p class="vide" style="padding:40px 20px">Aucun salon pour le moment.<br>Cree le premier.</p>';
+      return;
+    }
+    snap.forEach((d) => {
+      const s = d.data();
+      const b = document.createElement("button");
+      b.className = "salon";
+      const rond = document.createElement("div");
+      rond.className = "rond";
+      rond.textContent = (s.nom || d.id).charAt(0).toUpperCase();
+      rond.style.background = couleur(d.id);
+      const bloc = document.createElement("div");
+      const nom = document.createElement("div");
+      nom.className = "salon-nom";
+      nom.textContent = s.nom || d.id;
+      const info = document.createElement("div");
+      info.className = "salon-info";
+      info.textContent = "Cree par " + (s.creePar || "?");
+      bloc.append(nom, info);
+      b.append(rond, bloc);
+      b.addEventListener("click", () => ouvrir(d.id, s.nom || d.id));
+      boite.appendChild(b);
+    });
+  });
+}
+
+// --- Creation d'un salon, protegee par le mot de passe ---
+$("nouveau").addEventListener("click", async () => {
+  const mdp = prompt("Mot de passe administrateur :");
+  if(mdp === null) return;
+  if(mdp !== MDP_ADMIN){ alert("Mot de passe incorrect."); return; }
+
+  const nom = prompt("Nom du nouveau salon :");
+  if(!nom || !nom.trim()) return;
+
+  const id = nom.trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-");
+  if(!id){ alert("Nom invalide."); return; }
+
+  try{
+    // setDoc avec un id choisi : deux salons ne peuvent pas porter le meme nom.
+    await setDoc(doc(db,"salons",id), {
+      nom: nom.trim(),
+      creePar: etat.pseudo,
+      createdAt: serverTimestamp()
+    });
+  }catch(e){
+    alert("Creation impossible (" + e.code + ").");
+  }
+});
+
+// --- Notifications ---
+$("cloche").addEventListener("click", async () => {
+  if(!("Notification" in window)){ alert("Ton navigateur ne gere pas les notifications."); return; }
+  const r = await Notification.requestPermission();
+  alert(r === "granted"
+    ? "Notifications activees. Elles arrivent quand l'app est ouverte ou en arriere-plan."
+    : "Notifications refusees.");
+});
+
+function prevenir(m){
+  if(!("Notification" in window) || Notification.permission !== "granted") return;
+  if(document.visibilityState === "visible") return;   // deja sous les yeux
+  try{
+    new Notification(m.pseudo + " — #" + etat.salon, {
+      body: m.image ? "A envoye une photo" : (m.texte || ""),
+      tag: etat.salon
+    });
+  }catch{}
+}
+
+// --- 3. CHAT ---
+function ouvrir(id, nom){
+  etat.salon = id;
+  etat.premier = true;
+  $("titre").textContent = "#" + nom;
+  $("liste-salons").hidden = true;
   $("chat").hidden = false;
   $("msg").focus();
   ecouter();
 }
 
-// Retour à l'accueil : on coupe l'écoute pour ne pas consommer de lectures.
-$("retour").addEventListener("click", () => {
-  if(etat.stop) etat.stop();
-  etat.stop = null;
-  $("liste").innerHTML = "";
-  $("chat").hidden = true;
-  $("accueil").hidden = false;
-});
+$("retour").addEventListener("click", montrerSalons);
 
-// onSnapshot rappelle la fonction à chaque changement : c'est le temps réel.
 function ecouter(){
   const req = query(collection(db,"salons",etat.salon,"messages"), orderBy("createdAt","asc"), limit(200));
   etat.stop = onSnapshot(req, (snap) => {
     maj(true);
+    // Les messages arrives apres le chargement initial declenchent une notif.
+    if(!etat.premier){
+      snap.docChanges().forEach((c) => {
+        if(c.type === "added"){
+          const m = c.doc.data();
+          if(m.uid !== etat.uid) prevenir(m);
+        }
+      });
+    }
+    etat.premier = false;
+
     const liste = $("liste");
-    // Si l'utilisateur lisait plus haut, on ne le force pas à descendre.
     const enBas = liste.scrollHeight - liste.scrollTop - liste.clientHeight < 120;
     afficher(snap.docs);
     if(enBas) liste.scrollTop = liste.scrollHeight;
   }, (e) => {
     maj(false);
-    $("liste").innerHTML = '<p class="vide">Lecture refusée par Firestore (' + e.code + ').</p>';
+    $("liste").innerHTML = '<p class="vide">Lecture refusee par Firestore (' + e.code + ').</p>';
   });
 }
 
@@ -180,7 +307,7 @@ function afficher(docs){
   const liste = $("liste");
   liste.innerHTML = "";
   if(docs.length === 0){
-    liste.innerHTML = '<p class="vide">Personne n\'a encore parlé ici.<br>Envoie le premier message.</p>';
+    liste.innerHTML = '<p class="vide">Personne n\'a encore parle ici.<br>Envoie le premier message.</p>';
     return;
   }
   let prec = null;
@@ -205,14 +332,13 @@ function afficher(docs){
       bulle.appendChild(a);
     }
     if(m.image){
-      // L'image est stockee dans le message lui-meme, en data-URL.
       const img = document.createElement("img");
       img.src = m.image;
-      img.alt = "Photo envoyee par " + (m.pseudo || "");
+      img.alt = "Photo de " + (m.pseudo || "");
       img.loading = "lazy";
       bulle.appendChild(img);
     } else {
-      // textContent et jamais innerHTML : le texte recu ne peut pas injecter de HTML.
+      // textContent et jamais innerHTML : pas d'injection de HTML possible.
       bulle.appendChild(document.createTextNode(m.texte || ""));
     }
 
@@ -235,82 +361,73 @@ function afficher(docs){
   });
 }
 
-// Couleur stable dérivée du pseudo, sans rien stocker.
 function couleur(p){
   let n = 0;
   for(let i=0;i<p.length;i++) n = p.charCodeAt(i) + ((n<<5) - n);
   return "hsl(" + (Math.abs(n)%360) + ",62%,68%)";
 }
 
-// serverTimestamp() vaut null la fraction de seconde avant confirmation.
 function heure(t){
   if(!t || !t.toDate) return "…";
   return t.toDate().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
 }
 
 // --- Photos ---
-// Le bouton + ouvre le selecteur de fichiers du telephone.
 $("joindre").addEventListener("click", () => $("fichier").click());
 $("fichier").addEventListener("change", async (e) => {
   const f = e.target.files[0];
-  e.target.value = "";            // permet de renvoyer deux fois la meme photo
+  e.target.value = "";
   if(!f || !etat.uid) return;
   try{
     const data = await reduire(f);
     await addDoc(collection(db,"salons",etat.salon,"messages"), {
-      image: data,
-      pseudo: etat.pseudo,
-      uid: etat.uid,
-      createdAt: serverTimestamp()
+      image: data, pseudo: etat.pseudo, uid: etat.uid, createdAt: serverTimestamp()
     });
   }catch(err){
     alert("Photo non envoyee (" + (err.code || err.message) + ").");
   }
 });
 
-// Une photo brute fait plusieurs Mo : on la redimensionne et on la
-// recompresse dans le navigateur pour tomber sous les 100 Ko environ.
-// Sans ca, Firestore refuserait le message (limite de 1 Mo par document).
+// Une photo brute fait plusieurs Mo : on la reduit a 800 px et on la
+// recompresse, sinon Firestore la refuse (limite de 1 Mo par message).
 function reduire(fichier){
   return new Promise((ok, ko) => {
-    const lecteur = new FileReader();
-    lecteur.onerror = () => ko(new Error("lecture impossible"));
-    lecteur.onload = () => {
+    const lect = new FileReader();
+    lect.onerror = () => ko(new Error("lecture impossible"));
+    lect.onload = () => {
       const img = new Image();
       img.onerror = () => ko(new Error("image illisible"));
       img.onload = () => {
         const max = 800;
-        const ratio = Math.min(1, max / Math.max(img.width, img.height));
+        const r = Math.min(1, max / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
-        c.width = Math.round(img.width * ratio);
-        c.height = Math.round(img.height * ratio);
+        c.width = Math.round(img.width * r);
+        c.height = Math.round(img.height * r);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
         ok(c.toDataURL("image/jpeg", 0.55));
       };
-      img.src = lecteur.result;
+      img.src = lect.result;
     };
-    lecteur.readAsDataURL(fichier);
+    lect.readAsDataURL(fichier);
   });
 }
 
+// --- Envoi de texte ---
 $("envoyer").addEventListener("click", envoyer);
 $("msg").addEventListener("keydown", (e) => { if(e.key === "Enter") envoyer(); });
 
 async function envoyer(){
   const t = $("msg").value.trim();
   if(!t || !etat.uid) return;
-  $("msg").value = "";   // on vide tout de suite : l'interface reste réactive
+  $("msg").value = "";
   try{
     await addDoc(collection(db,"salons",etat.salon,"messages"), {
-      texte: t,
-      pseudo: etat.pseudo,
-      uid: etat.uid,
-      createdAt: serverTimestamp()   // heure du serveur, pas celle du téléphone
+      texte: t, pseudo: etat.pseudo, uid: etat.uid, createdAt: serverTimestamp()
     });
   }catch(e){
     $("msg").value = t;
     maj(false);
-    alert("Message non envoyé (" + e.code + ").");
+    alert("Message non envoye (" + e.code + ").");
   }
 }
 </script>
